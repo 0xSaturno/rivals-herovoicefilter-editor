@@ -4,23 +4,195 @@
         x:Class="HeroVoiceFilterEditor.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="Hero Voice Filter Editor"
-        Width="1180" Height="760"
-        MinWidth="940" MinHeight="600">
+        Width="1280" Height="820"
+        MinWidth="1000" MinHeight="640">
+
+  <Window.Resources>
+    <SolidColorBrush x:Key="Hairline" Color="#26FFFFFF" />
+    <SolidColorBrush x:Key="PanelBg" Color="#12FFFFFF" />
+  </Window.Resources>
+
+  <Window.Styles>
+    <Style Selector="TextBlock.dim">
+      <Setter Property="Opacity" Value="0.6" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TextBlock.section">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Opacity" Value="0.75" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{StaticResource PanelBg}" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="14" />
+    </Style>
+  </Window.Styles>
 
   <DockPanel>
 
-    <Border DockPanel.Dock="Bottom"
-            Padding="12,6"
-            BorderThickness="0,1,0,0"
-            BorderBrush="#33FFFFFF">
-      <TextBlock Text="{Binding BackendStatus}" FontSize="12" Opacity="0.7" />
+    <!-- Top bar -->
+    <Border DockPanel.Dock="Top" Padding="12,10" BorderThickness="0,0,0,1" BorderBrush="{StaticResource Hairline}">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button Content="Refresh from game" Command="{Binding RefreshFromGameCommand}" IsEnabled="{Binding !IsBusy}" />
+          <Border Width="1" Background="{StaticResource Hairline}" Margin="4,2" />
+          <Button Content="Open project…" Command="{Binding OpenProjectCommand}" IsEnabled="{Binding IsReady}" />
+          <Button Content="Save project" Command="{Binding SaveProjectCommand}" IsEnabled="{Binding IsReady}" />
+          <Button Content="Save as…" Command="{Binding SaveProjectAsCommand}" IsEnabled="{Binding IsReady}" />
+          <Border Width="1" Background="{StaticResource Hairline}" Margin="4,2" />
+          <Button Content="Export .uasset…" Command="{Binding ExportAssetCommand}" IsEnabled="{Binding IsReady}" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0" ClipToBounds="True">
+          <TextBlock Text="{Binding Provenance}" Classes="dim"
+                     TextAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="unsaved changes" FontSize="11" Foreground="#FFD479"
+                     TextAlignment="Center" IsVisible="{Binding HasUnsavedChanges}" />
+        </StackPanel>
+
+        <Button Grid.Column="2" Content="Settings" Command="{Binding OpenSettingsCommand}" />
+      </Grid>
     </Border>
 
-    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10">
-      <TextBlock Text="Hero Voice Filter Editor" FontSize="26" FontWeight="SemiBold" HorizontalAlignment="Center" />
-      <TextBlock Text="{Binding Stage}" FontSize="14" Opacity="0.6" HorizontalAlignment="Center" />
-    </StackPanel>
+    <!-- Status bar -->
+    <Border DockPanel.Dock="Bottom" Padding="12,6" BorderThickness="0,1,0,0" BorderBrush="{StaticResource Hairline}">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <ProgressBar IsIndeterminate="True" Width="90" Height="3" VerticalAlignment="Center"
+                     Margin="0,0,10,0" IsVisible="{Binding IsBusy}" />
+        <TextBlock Grid.Column="1" Text="{Binding Status}" Classes="dim" VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <TextBlock Text="{Binding UsmapLabel}" Classes="dim" />
+          <TextBlock Text="{Binding BackendVersion}" Classes="dim" />
+        </StackPanel>
+      </Grid>
+    </Border>
 
+    <!-- Log -->
+    <Border DockPanel.Dock="Bottom" Height="128" Padding="12,8"
+            BorderThickness="0,1,0,0" BorderBrush="{StaticResource Hairline}">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="Log" Classes="section" />
+        <ScrollViewer>
+          <ItemsControl ItemsSource="{Binding Log}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding}" FontFamily="Consolas,Menlo,monospace" FontSize="11" Opacity="0.7" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+
+    <!-- Body -->
+    <Grid ColumnDefinitions="420,Auto,*">
+
+      <!-- Entry list -->
+      <DockPanel Margin="12">
+        <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,10">
+          <TextBox Text="{Binding SearchText}" Watermark="Search hero, skin name, id or filter…" />
+          <Grid ColumnDefinitions="*,Auto,Auto">
+            <ComboBox ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter}" HorizontalAlignment="Stretch" />
+            <Button Grid.Column="1" Content="Add…" Margin="8,0,0,0"
+                    Command="{Binding AddEntryCommand}" IsEnabled="{Binding IsReady}" />
+            <Button Grid.Column="2" Content="Remove" Margin="6,0,0,0" Command="{Binding RemoveEntryCommand}" />
+          </Grid>
+          <TextBlock Text="{Binding EntryCountText}" Classes="dim" />
+        </StackPanel>
+
+        <ListBox ItemsSource="{Binding VisibleEntries}" SelectedItem="{Binding SelectedEntry}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:EntryViewModel">
+              <Grid ColumnDefinitions="*,Auto" Margin="0,3"
+                    AutomationProperties.Name="{Binding DisplayName}"
+                    AutomationProperties.HelpText="{Binding SlotSummary}">
+                <StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{Binding SkinId}" FontFamily="Consolas,Menlo,monospace" FontSize="12" Opacity="0.55" />
+                    <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <TextBlock Text="{Binding SlotSummary}" Classes="dim" FontSize="11"
+                             TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                </StackPanel>
+                <Border Grid.Column="1" IsVisible="{Binding HasBadge}" VerticalAlignment="Center"
+                        Background="#33FFD479" CornerRadius="3" Padding="6,2">
+                  <TextBlock Text="{Binding Badge}" FontSize="10" FontWeight="Bold" Foreground="#FFD479" />
+                </Border>
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+
+      <Border Grid.Column="1" Width="1" Background="{StaticResource Hairline}" />
+
+      <!-- Detail -->
+      <ScrollViewer Grid.Column="2" Margin="16">
+        <Panel>
+          <TextBlock Text="Select an entry to edit its voice filters."
+                     Classes="dim" HorizontalAlignment="Center" VerticalAlignment="Center"
+                     IsVisible="{Binding SelectedEntry, Converter={x:Static ObjectConverters.IsNull}}" />
+
+          <Border IsVisible="{Binding SelectedEntry, Converter={x:Static ObjectConverters.IsNotNull}}">
+          <StackPanel Spacing="16" DataContext="{Binding SelectedEntry}" x:DataType="vm:EntryViewModel">
+
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding DisplayName}" FontSize="22" FontWeight="SemiBold" />
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="{Binding SkinId, StringFormat='skin {0}'}" Classes="dim" />
+                <TextBlock Text="not in the id list" Classes="dim" Foreground="#FFD479"
+                           IsVisible="{Binding !IsNamed}" />
+              </StackPanel>
+            </StackPanel>
+
+            <Border Classes="card">
+              <StackPanel Spacing="10">
+                <TextBlock Text="QUICK FILL" Classes="section" />
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                  <ComboBox ItemsSource="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).FamilyNames}"
+                            SelectedItem="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).SelectedFamily}"
+                            PlaceholderText="Choose a filter family…" HorizontalAlignment="Stretch" />
+                  <Button Grid.Column="1" Content="Apply" Margin="8,0,0,0"
+                          Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ApplyFamilyCommand}" />
+                  <Button Grid.Column="2" Content="Clear all" Margin="6,0,0,0"
+                          Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ClearSlotsCommand}" />
+                </Grid>
+                <TextBlock Text="Fills slots in order from the family. Slots stay free-form — any effect can go in any slot."
+                           Classes="dim" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="10">
+                <TextBlock Text="FILTER SLOTS" Classes="section" />
+                <ItemsControl ItemsSource="{Binding Slots}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SlotViewModel">
+                      <Grid ColumnDefinitions="70,*" Margin="0,4">
+                        <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Classes="dim" />
+                        <AutoCompleteBox Grid.Column="1"
+                                         ItemsSource="{Binding Available}"
+                                         SelectedItem="{Binding SelectedName}"
+                                         Text="{Binding SelectedName}"
+                                         FilterMode="ContainsOrdinal"
+                                         MinimumPrefixLength="0"
+                                         HorizontalAlignment="Stretch" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+
+          </StackPanel>
+          </Border>
+        </Panel>
+      </ScrollViewer>
+
+    </Grid>
   </DockPanel>
 
 </Window>

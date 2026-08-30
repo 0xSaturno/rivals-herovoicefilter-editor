@@ -291,20 +291,36 @@ worst case in the UI is `Hawkeye — skin 1021001`, never a bare number.
 
 ---
 
-## Phase 5 — UI (single window, Fluent, MVVM)
+## Phase 5 — UI (single window, Fluent, MVVM) — DONE
 
-- [ ] **Top bar** — `vanilla 3805839 · from Patch_...3805839_P` ·
-      `[Refresh from game]` · `[Open/Save project]` · `[Export .uasset]` · settings
-- [ ] **Left** — entries grouped by hero, `1014501 · Punisher — Punisher 2099`,
-      inline filter summary; search box; toggles All / Has filters / Empty / Modified;
-      added + modified rows badged
-- [ ] **Right** — 4 searchable slot combos over every `effect_vo` object;
-      family quick-fill combo + Apply above them
-      (`effect_vo_tech_mask_01_slot` fills slots 0-2, leaves 3 `None`);
-      per-slot clear; add / remove entry
-- [ ] **Add entry dialog** — type-ahead over the catalog, raw 7-digit ID accepted for
-      unlisted skins (labelled *unknown skin*), rejects IDs already in the table
-- [ ] **Log pane** — extraction and replay reports
+- [x] **Top bar** — provenance (`build 3805839 · from Patch_-Windows_1.1.3791970_P.utoc`),
+      `[Refresh from game]` · `[Open project]` `[Save project]` `[Save as]` ·
+      `[Export .uasset]` · `[Settings]`, plus an "unsaved changes" marker
+- [x] **Left** — entry rows showing id, `Punisher — Punisher 2099`, and a filter summary;
+      search over hero/skin/id/filter; All / HasFilters / Empty / Modified filter;
+      `NEW` and `EDITED` badges; Add / Remove
+- [x] **Right** — 4 type-ahead slot boxes over every `effect_vo` object, family quick-fill
+      with Apply, Clear all
+- [x] **Add entry dialog** — search over 643 skins, raw id accepted for unlisted skins,
+      live validation that rejects ids already present
+- [x] **Settings dialog** — Paks dir with Browse and Autodetect plus live validation,
+      AES key, usmap override, workspace, update-on-launch toggle
+- [x] **Log pane** and status bar (usmap name, backend versions)
+
+`EditorSession` in Core carries the orchestration (settings, metadata, extraction, document)
+so the view models stay thin and the whole flow is testable headlessly.
+
+Verified by driving the real app: it autodetected the game, fetched hero names and the usmap,
+reported `NeedsExtraction`, extracted on demand, then on relaunch reused the cached build and
+loaded all **58 entries** with names. Selecting `1016501` shows Loki — All-Butcher with its
+three `effect_vo_eldergod_mask` slots and an empty slot 3.
+
+Two issues found by looking at the running app rather than the code:
+
+- The provenance text overflowed its grid column and painted over the Export and Settings
+  buttons. Trimmed and clipped; the usmap name moved to the status bar where there is room.
+- List rows announced as `HeroVoiceFilterEditor.ViewModels.EntryViewModel` to screen readers.
+  Added `AutomationProperties.Name`/`HelpText` so they announce the hero and skin instead.
 
 No slot/suffix constraint is enforced anywhere — slots are free-form by design.
 
