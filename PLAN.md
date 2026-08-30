@@ -90,17 +90,42 @@ Notes:
 
 ---
 
-## Phase 1 — Game access (Core)
+## Phase 1 — Game access (Core) — DONE
 
-- [ ] `GameLocator` — Steam autodetect via `libraryfolders.vdf`, manual override
-- [ ] `ContainerSet` — enumerate `*.utoc`, merge `IoStoreToc.FileMap` by mount priority
-      (global + pakchunks, then `Patch_..._P` ascending by build number; last wins).
-      Record which container each path resolved from, for UI provenance.
-- [ ] `WorkspaceExtractor` — pull the winning `MarvelHeroVoiceData` chunk, Zen to legacy
-      convert, write to `workspace/vanilla/<build>/Marvel/Content/Marvel/Audio/Voice/`,
-      plus a manifest (build id, source container, timestamp)
-- [ ] `EffectCatalog` — enumerate `effect_vo` package paths **from the container index
-      only, nothing extracted**. Cache to workspace JSON.
+- [x] `GameLocator` — Steam autodetect by probing standard roots and parsing
+      `libraryfolders.vdf`; manual override always available. Found the install in 19 ms.
+- [x] `GameContainerSet` — enumerate `*.utoc` and load into one `FZenPackageContext` in
+      priority order. Tracks container index to file name for provenance.
+- [x] `WorkspaceExtractor` — resolve the winning `MarvelHeroVoiceData` package, convert via
+      `ZenToLegacyConverter`, write `.uasset`/`.uexp` under
+      `workspace/vanilla/<build>/<container path>` plus `snapshot.json`
+- [x] `EffectCatalog` — enumerate `effect_vo` packages from the container index only,
+      nothing extracted. JSON save/load round-trips.
+
+Verified against the live install (build 3805839):
+
+- Extracted `.uasset` (12175 B) and `.uexp` (5693 B) are **byte-identical** to the known-good
+  `UAssetToolTUI/extracted` copy. The whole extraction path is correct.
+- **39 effect objects in 15 families**, exactly the set the vanilla table references — the game
+  currently ships no unused `effect_vo` filters. Scanning the folder is still right, since a
+  future patch may add some.
+- Oodle auto-downloaded on first use (637952 B), as expected. No shipping needed.
+
+Findings that matter later:
+
+- **Snapshot build and source container are different things, deliberately.** The table
+  currently resolves from `Patch_-Windows_1.1.3791970_P.utoc` even though the game is on
+  `3805839` — patches only carry assets they changed. `Build` labels the game version;
+  `SourceContainer` records where this asset actually came from. Both go in `snapshot.json`.
+- Load order is the override mechanism: `FZenPackageContext` lets later loads replace earlier
+  ones, so base containers load first and patch containers ascending by build.
+- `GameContainerSet.Open` costs **~9 s** (40 containers, 570722 packages indexed). Fine for an
+  explicit "Refresh from game", too slow to do on every launch — cache the workspace and only
+  re-open on demand. Narrowing the container set is the optimisation if it ever matters.
+- Bug found and fixed during verification: the patch-build regex required `_` before the digits,
+  but the real names are `Patch_-Windows_1.1.3805839_P.utoc` with a **dot**. Every build parsed
+  as null, so the snapshot label fell back to `base`. Ordering had been accidentally correct via
+  the filename tie-breaker; it is now correct by construction.
 
 Family grouping rule — strip a trailing `_\d+`. Uniform across every naming style present:
 
@@ -113,16 +138,47 @@ Family grouping rule — strip a trailing `_\d+`. Uniform across every naming st
 
 ---
 
-## Phase 2 — Table model (Core)
+## Phase 2 — Table model (Core) — DONE
 
-- [ ] Load asset with usmap `Mappings`; locate export `MarvelHeroVoiceData`,
+Verified end to end against the extracted vanilla table (58 entries, 35 with filters,
+23 all-None). Every check below passes:
+
+| test | result |
+|---|---|
+| No-op save | `.uasset` and `.uexp` both **byte-identical** to source |
+| Edit existing entry, already-imported effect | works, **0** imports appended |
+| Add new entry, family-filled (4 slots) | works, 59 entries, survives reload |
+| Effect not yet imported (synthetic) | **2** imports appended, resolves back correctly |
+| Clear a slot to None | works, neighbouring slots untouched |
+| Remove an entry | works, 57 entries |
+| Unrelated entries after an edit | unchanged, order preserved |
+
+**Two bugs found by running it, both invisible to inspection:**
+
+1. **FName number suffixes.** UE folds a canonical trailing `_N` into `FName.Number`, storing
+   `effect_vo_x_slot` in the name map with the index alongside. Reading `FName.Value` alone
+   collapsed `_slot_0`, `_slot_1` and `_slot_2` onto one key — three distinct effects became
+   one, silently. `adam_god_01`–`_04` survived only because a leading zero blocks the split.
+   Fixed by using `FName.ToString()` to read and `FName.FromString()` to write, which is also
+   how the game stores these names.
+
+2. **Stored unversioned headers are replayed on write.** UAssetTool modified UAssetAPI so
+   `NormalExport` and `StructPropertyData` always re-emit the header captured at read time
+   (`StructPropertyData.cs:216`). That is right for its JSON round-trips, but an editor that
+   flips `IsZero` gets a header describing the *old* zero-mask while the body writes the new
+   value — the reader then desynced and failed with a bogus schema index. `Clone()` copies that
+   header too, so new entries inherited the template's mask. Fixed by dropping
+   `_originalStructHeader` on structs we actually touch, which leaves untouched ones
+   byte-exact.
+
+- [x] Load asset with usmap `Mappings`; locate export `MarvelHeroVoiceData`,
       property `SkinBusEffects`
-- [ ] **Read**: `ObjectProperty.Value < 0` to `Imports[-v-1]` for the object name,
+- [x] **Read**: `ObjectProperty.Value < 0` to `Imports[-v-1]` for the object name,
       follow `OuterIndex` to the `Package` import for the full `/Game/...` path.
       `0` means `None`.
-- [ ] Model: `SkinBusEntry { int SkinId; EffectRef?[4] Slots }`,
+- [x] Model: `SkinBusEntry { int SkinId; EffectRef?[4] Slots }`,
       `EffectRef { PackagePath, ObjectName }`
-- [ ] **`ImportResolver`** — reuse an existing import pair, or append:
+- [x] **`ImportResolver`** — reuse an existing import pair, or append:
 
 ```
 name map  += "/Game/Marvel/Wwise/Assets/Effects/effect_vo/<dir>/<obj>"
@@ -133,9 +189,11 @@ import -M  = { ObjectName: "<obj>",      OuterIndex: -N,
                ClassPackage: /Script/AkAudio,     ClassName: AkEffectShareSet }
 ```
 
-- [ ] Write back int keys + struct slots, preserving `StructType`
+- [x] Write back int keys + struct slots, preserving `StructType`
       `MarvelAudioBusEffectSlots`, `SerializeNone: true`, zero GUID, and the
-      `IsZero` flag semantics (`IsZero: true` means value 0 / `None`)
+      `IsZero` flag semantics (`IsZero: true` means value 0 / `None`).
+      New entries clone an existing pair, so all struct metadata is inherited rather than
+      hand-built; `StructPropertyData.HandleCloned` deep-clones the four slot children.
 
 **Decision — import ordering.** Appending breaks the vanilla objects-then-packages
 grouping. UE does not care about import order, and `create_mod_iostore` rebuilds
@@ -147,39 +205,89 @@ Harmless, and pruning would force renumbering.
 
 ---
 
-## Phase 3 — Delta project + replay
+## Phase 3 — Delta project + replay — DONE
 
-- [ ] `.rhvfp` schema — effects referenced by **package path**, so the file survives
+- [x] `.rhvfp` schema — effects referenced by **package path**, so the file survives
       import renumbering across game patches
+- [x] `ReplayEngine` — apply onto freshly extracted vanilla, per-entry status
+- [x] Conflicts reported before anything is written; `ConflictPolicy.Skip` (default) leaves
+      vanilla alone, `Overwrite` forces the edit
+
+**Design refinement over the original sketch:** each entry also records `BaseSlots`, the vanilla
+state when the edit was authored. Without it, "already applied" and "the game changed underneath
+us" are indistinguishable. Removals carry `BaseSlots` too, so the UI can show what was dropped,
+and omit `Slots` entirely.
 
 ```json
-{ "schema": 1, "authoredAgainstBuild": "3805839",
-  "entries": [ { "skinId": 1015503, "op": "upsert",
-                 "slots": ["/Game/.../effect_vo_symbiote_1041_0", null, null, null] } ] }
+{ "Schema": 1, "AuthoredAgainstBuild": "3805839",
+  "Entries": [ { "SkinId": 1015503, "Op": "Upsert",
+                 "Slots": ["/Game/.../effect_vo_symbiote_1047_slot_0", null, null, null],
+                 "BaseSlots": null } ] }
 ```
 
-- [ ] `ReplayEngine` — apply onto freshly extracted vanilla, per-entry status:
-  - **Applied** — change written
-  - **AlreadyMatches** — vanilla already has exactly this
-  - **Conflict** — vanilla now ships non-`None` slots for that skin
-  - **MissingEffect** — referenced package no longer exists in the game
-- [ ] Surface conflicts in the UI *before* anything is written
+Statuses: `Applied`, `Added`, `AlreadyMatches`, `Conflict`, `MissingEffect`, `Removed`,
+`RemoveTargetMissing`. The last three plus `Conflict` set `NeedsAttention`.
+
+Verified:
+
+| test | result |
+|---|---|
+| Author project from 3 edits + 1 removal | 4 entries, correct ops and baselines |
+| **Replay onto fresh vanilla vs editing directly** | **byte-identical output** |
+| Replay twice (idempotency) | 3 AlreadyMatches, 1 RemoveTargetMissing, nothing rewritten |
+| Vanilla changed underneath, `Skip` | Conflict reported, vanilla left intact |
+| Vanilla changed underneath, `Overwrite` | Conflict reported, edit applied |
+| Unrelated entries during a conflict | still applied |
+| Effect missing from the game | MissingEffect, nothing written |
+| Schema newer than supported | rejected with a clear message |
+
+The byte-identical replay-vs-direct-edit result is the one that matters: it proves the delta
+captures the full intent of an editing session, so re-applying after a patch cannot silently
+drift from what was authored.
 
 ---
 
-## Phase 4 — Metadata services
+## Phase 4 — Metadata services — DONE
 
-- [ ] `UsmapService` — fetch `Mappings.json`, compare `fileName`/`uploaded` against
-      cache, download to `%LocalAppData%/HeroVoiceFilterEditor/usmap/`,
-      load via `new Usmap(path)`. Manual override in settings.
-- [ ] `HeroSkinCatalog` — fetch + parse `MarvelRivalsCharacterIDs.md`
-      (`| id | name | skinId | skinName |`; blank hero cells inherit the previous row).
-      **Parser must be lenient** — the source has ragged rows with missing trailing
-      pipes and trailing whitespace. Cache with timestamp.
-- [ ] `SettingsService` — `%AppData%/HeroVoiceFilterEditor/config.json`:
-      Paks dir, AES key (default `0x0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74`),
-      workspace dir, usmap override, auto-check-on-launch toggle
-- [ ] Background check at startup; fully functional offline from cache
+- [x] `UsmapService` — fetch `Mappings.json`, compare against cache, download to
+      `%LocalAppData%/HeroVoiceFilterEditor/usmap/`, load via `new Usmap(path)`.
+      Manual override in settings.
+- [x] `HeroSkinCatalog` — fetch + parse `MarvelRivalsCharacterIDs.md`, cached as raw markdown
+- [x] `SettingsService` — `%AppData%/HeroVoiceFilterEditor/config.json`
+- [x] Fully functional offline from cache; every remote failure degrades to the cache
+
+`CacheStatus` is shared by both services: `UpToDate`, `UpdateAvailable`, `Downloaded`,
+`Offline`, `Unavailable`.
+
+Verified:
+
+| test | result |
+|---|---|
+| Usmap: empty cache, no remote | `Unavailable`, no crash |
+| Usmap: first fetch | `Downloaded` S9.5, 1272719 bytes |
+| Usmap: second fetch | `UpToDate`, no re-download, stable path |
+| Usmap: cached, remote disabled | serves from cache |
+| Hero ids: first fetch | `Downloaded`, 114 heroes / 643 skins |
+| Hero ids: remote disabled | serves from cache |
+| Settings: autodetect | found the Steam Paks dir |
+| Settings: round-trip, corrupt file | survives, falls back to defaults |
+
+**Markdown raggedness handled** (all present in the live file):
+
+- `????` placeholder hero ids (`Upcoming Characters`, `Captain Marvel`) — skipped
+- rows with a skin name but no skin id (line 703, `God Of Stories`) — skipped
+- a two-cell row (`Gorr The God Butcher`) and many missing trailing pipes
+- heroes with no skins at all (`UltronTrackedBomber`) — parse to an empty list
+- one hero row with a blank name (`1069`) — falls back to `Hero 1069`
+- **13 duplicate hero ids.** The file reassigns ids across sections and lists the superseded
+  owner as `Name (Old)` with no skins — `1057 Deadpool` then `1057 Professor X (Old)`. The
+  first parser crashed on `ToDictionary`. Rows are now merged per id, first non-empty name
+  winning, so 127 hero rows become 114 unique heroes with skins intact.
+
+**Naming coverage on the real table: 49/58 fully named, 9 hero-only, 0 unknown.** The nine
+unnamed are almost all `*001` ids (`1021001`, `1026001`, `1030001`…) that the markdown does not
+list, plus one newer skin. Every one still resolves its hero via the leading four digits, so the
+worst case in the UI is `Hawkeye — skin 1021001`, never a bare number.
 
 ---
 

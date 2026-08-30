@@ -25,3 +25,18 @@ Local modifications to date:
   vendored source is ever refreshed.
 
 `LICENSE` and `NOTICE.md` are mirrored at the repository root for attribution.
+
+## Couplings to UAssetTool-local behaviour
+
+`HeroVoiceFilterEditor.Core` depends on two things this fork added to UAssetAPI, neither of
+which exists upstream. If the vendored source is ever refreshed, re-check both.
+
+- `StructPropertyData._originalStructHeader` (and the matching
+  `NormalExport.OriginalUnversionedHeader`) store the unversioned header captured at read time
+  and replay it on write, in preference to regenerating one. `VoiceDataDocument` sets that field
+  to `null` on any struct whose slots it changed, so the writer regenerates a header matching the
+  new zero-mask. Without this the header and body disagree and the asset fails to reparse.
+- `MainSerializer.GenerateUnversionedHeader` returns `null` when a property cannot be resolved
+  against the usmap schema, and callers then fall back to the stored header. Since we null the
+  stored header on touched structs, a resolution failure there would emit no header at all. It
+  resolves correctly for `MarvelAudioBusEffectSlots` today, which the Phase 2 tests cover.
