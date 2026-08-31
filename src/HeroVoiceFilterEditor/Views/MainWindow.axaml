@@ -5,7 +5,9 @@
         x:DataType="vm:MainWindowViewModel"
         Title="Hero Voice Filter Editor"
         Width="1280" Height="820"
-        MinWidth="1000" MinHeight="640">
+        MinWidth="1000" MinHeight="640"
+        Background="Transparent"
+        TransparencyLevelHint="AcrylicBlur,Mica,None">
 
   <Window.Resources>
     <SolidColorBrush x:Key="Hairline" Color="#26FFFFFF" />
@@ -28,9 +30,100 @@
       <Setter Property="CornerRadius" Value="6" />
       <Setter Property="Padding" Value="14" />
     </Style>
+
+    <!-- Pills / chips -->
+    <Style Selector="Border.pill">
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Padding" Value="8,3" />
+      <Setter Property="Background" Value="#1AFFFFFF" />
+    </Style>
+    <Style Selector="Border.pill TextBlock">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.pillId">
+      <Setter Property="Background" Value="#1D6FA8DC" />
+    </Style>
+    <!-- Consolas' line metrics sit higher than the UI font's, so a plain center-align still
+         looks off inside a tight pill; pinning LineHeight to the font size removes that. -->
+    <Style Selector="Border.pillId TextBlock">
+      <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+      <Setter Property="LineHeight" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#9AD0F5" />
+    </Style>
+    <Style Selector="Border.pillFilter">
+      <Setter Property="Background" Value="#1D9B7FE0" />
+    </Style>
+    <Style Selector="Border.pillFilter TextBlock">
+      <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+      <Setter Property="LineHeight" Value="11" />
+      <Setter Property="Foreground" Value="#D2C4F7" />
+    </Style>
+    <Style Selector="Border.pillMuted">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="Border.pillMuted TextBlock">
+      <Setter Property="Opacity" Value="0.45" />
+      <Setter Property="FontStyle" Value="Italic" />
+    </Style>
+    <Style Selector="Border.pillBadge">
+      <Setter Property="Background" Value="#33FFD479" />
+    </Style>
+    <Style Selector="Border.pillBadge TextBlock">
+      <Setter Property="FontSize" Value="10" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="#FFD479" />
+    </Style>
+    <!-- A white-based tint brightens whatever's behind it — fine over solid black, but it
+         washes out badly layered over the acrylic blur. A black-based tint darkens instead. -->
+    <Style Selector="Border.chip">
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="Background" Value="#40000000" />
+    </Style>
+    <Style Selector="Border.chip TextBlock">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <!-- Entry list cards -->
+    <Style Selector="ListBox.entries">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.entries ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="Border.entryCard">
+      <Setter Property="Background" Value="{StaticResource PanelBg}" />
+      <Setter Property="BorderBrush" Value="{StaticResource Hairline}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="12,10" />
+    </Style>
+    <!-- Deliberately near-opaque rather than a light tint: a low-alpha selection color inherits
+         too much of whatever's blurred behind the window at that scroll position, so it reads
+         as "randomly bright" depending on backdrop rather than a consistent selected state. -->
+    <Style Selector="Border.entryCard.selected">
+      <Setter Property="Background" Value="#E0163C57" />
+      <Setter Property="BorderBrush" Value="#B32E6C97" />
+    </Style>
   </Window.Styles>
 
-  <DockPanel>
+  <Panel>
+    <!-- AcrylicBlur is requested ahead of Mica: Avalonia's Win32 Mica brush needs a WinUI
+         composition runtime that isn't guaranteed present, and it reports ActualTransparencyLevel
+         as "Mica" (success) even when that brush silently fails to render — so once Mica is
+         accepted, Avalonia never falls through to Acrylic on its own. Verified against real
+         composited screen pixels (not a window-content-only capture, which can't see this layer
+         at all): Acrylic renders correctly here, Mica does not. Falls back to plain opaque black
+         on Windows 10 / non-Windows, where TransparencyLevelHint degrades to None. -->
+    <Border Background="#990B0B0D" />
+
+    <DockPanel>
 
     <!-- Top bar -->
     <Border DockPanel.Dock="Top" Padding="12,10" BorderThickness="0,0,0,1" BorderBrush="{StaticResource Hairline}">
@@ -72,7 +165,8 @@
 
     <!-- Log -->
     <Border DockPanel.Dock="Bottom" Height="128" Padding="12,8"
-            BorderThickness="0,1,0,0" BorderBrush="{StaticResource Hairline}">
+            BorderThickness="0,1,0,0" BorderBrush="{StaticResource Hairline}"
+            IsVisible="{Binding ShowLogPane}">
       <DockPanel>
         <TextBlock DockPanel.Dock="Top" Text="Log" Classes="section" />
         <ScrollViewer>
@@ -103,25 +197,48 @@
           <TextBlock Text="{Binding EntryCountText}" Classes="dim" />
         </StackPanel>
 
-        <ListBox ItemsSource="{Binding VisibleEntries}" SelectedItem="{Binding SelectedEntry}">
+        <ListBox Classes="entries" ItemsSource="{Binding VisibleEntries}" SelectedItem="{Binding SelectedEntry}">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="vm:EntryViewModel">
-              <Grid ColumnDefinitions="*,Auto" Margin="0,3"
-                    AutomationProperties.Name="{Binding DisplayName}"
-                    AutomationProperties.HelpText="{Binding SlotSummary}">
-                <StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="{Binding SkinId}" FontFamily="Consolas,Menlo,monospace" FontSize="12" Opacity="0.55" />
-                    <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                  </StackPanel>
-                  <TextBlock Text="{Binding SlotSummary}" Classes="dim" FontSize="11"
-                             TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+              <Border Classes="entryCard" Classes.selected="{Binding $parent[ListBoxItem].IsSelected}"
+                      AutomationProperties.Name="{Binding DisplayName}"
+                      AutomationProperties.HelpText="{Binding SlotSummary}">
+                <StackPanel Spacing="8">
+
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Border Classes="pill pillId">
+                      <TextBlock Text="{Binding SkinId}" />
+                    </Border>
+                    <Border Grid.Column="1" Classes="chip" Margin="8,0,0,0">
+                      <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                    </Border>
+                    <Border Grid.Column="2" Classes="pill pillBadge" Margin="8,0,0,0"
+                            IsVisible="{Binding HasBadge}" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Badge}" />
+                    </Border>
+                  </Grid>
+
+                  <ItemsControl ItemsSource="{Binding FilterChips}" IsVisible="{Binding HasFilters}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="x:String">
+                        <Border Classes="pill pillFilter" Margin="0,0,6,6">
+                          <TextBlock Text="{Binding}" />
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+
+                  <Border Classes="pillMuted" HorizontalAlignment="Left" IsVisible="{Binding !HasFilters}">
+                    <TextBlock Text="no filters" />
+                  </Border>
+
                 </StackPanel>
-                <Border Grid.Column="1" IsVisible="{Binding HasBadge}" VerticalAlignment="Center"
-                        Background="#33FFD479" CornerRadius="3" Padding="6,2">
-                  <TextBlock Text="{Binding Badge}" FontSize="10" FontWeight="Bold" Foreground="#FFD479" />
-                </Border>
-              </Grid>
+              </Border>
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
@@ -173,10 +290,12 @@
                     <DataTemplate x:DataType="vm:SlotViewModel">
                       <Grid ColumnDefinitions="70,*" Margin="0,4">
                         <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Classes="dim" />
+                        <!-- SelectedItem alone drives this — AutoCompleteBox derives its
+                             displayed Text from it. Binding Text too raced the two on every
+                             re-attach (i.e. every row selection) and could clobber the slot. -->
                         <AutoCompleteBox Grid.Column="1"
                                          ItemsSource="{Binding Available}"
                                          SelectedItem="{Binding SelectedName}"
-                                         Text="{Binding SelectedName}"
                                          FilterMode="ContainsOrdinal"
                                          MinimumPrefixLength="0"
                                          HorizontalAlignment="Stretch" />
@@ -193,6 +312,7 @@
       </ScrollViewer>
 
     </Grid>
-  </DockPanel>
+    </DockPanel>
+  </Panel>
 
 </Window>

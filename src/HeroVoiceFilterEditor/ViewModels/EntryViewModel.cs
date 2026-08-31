@@ -37,6 +37,18 @@ public partial class EntryViewModel : ObservableObject
         ? "no filters"
         : string.Join("  ·  ", Entry.Slots.Where(s => s is not null).Select(s => s!.ObjectName));
 
+    /// Filter names for the row's pill chips. Trims the "effect_vo_" prefix every filter
+    /// shares, since spelling it out on every chip would make each row needlessly tall.
+    public IReadOnlyList<string> FilterChips => Entry.Slots
+        .Where(s => s is not null)
+        .Select(s => ShortEffectName(s!.ObjectName))
+        .ToList();
+
+    private static string ShortEffectName(string objectName) =>
+        objectName.StartsWith("effect_vo_", StringComparison.OrdinalIgnoreCase)
+            ? objectName["effect_vo_".Length..]
+            : objectName;
+
     public bool IsAdded => _main.Session.Document?.IsAdded(Entry) ?? false;
 
     public bool IsModified => _main.Session.Document?.IsModified(Entry) ?? false;
@@ -52,6 +64,7 @@ public partial class EntryViewModel : ObservableObject
     public void NotifySlotsChanged()
     {
         OnPropertyChanged(nameof(SlotSummary));
+        OnPropertyChanged(nameof(FilterChips));
         OnPropertyChanged(nameof(HasFilters));
         RefreshBadges();
         _main.MarkDirty();

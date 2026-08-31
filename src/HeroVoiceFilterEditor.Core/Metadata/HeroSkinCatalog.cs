@@ -42,6 +42,10 @@ public sealed class HeroSkinCatalog
     /// when a skin is too new to appear in the markdown.
     public static int HeroIdOf(int skinId) => skinId >= 1_000_000 ? skinId / 1000 : 0;
 
+    /// The base costume's id — heroId + "001". Never listed in the community markdown
+    /// (it is the look every hero starts with, not an alternate skin), so it is synthesized.
+    public static int DefaultSkinId(int heroId) => heroId * 1000 + 1;
+
     public string Describe(int skinId)
     {
         if (FindSkin(skinId) is { } skin)
@@ -104,8 +108,13 @@ public sealed class HeroSkinCatalog
         foreach (int heroId in order)
         {
             string heroName = names[heroId].Length > 0 ? names[heroId] : $"Hero {heroId}";
-            heroes.Add(new Hero(heroId, heroName,
-                skins[heroId].Select(s => new HeroSkin(s.SkinId, s.SkinName, heroId, heroName)).ToList()));
+            List<HeroSkin> heroSkins = skins[heroId].Select(s => new HeroSkin(s.SkinId, s.SkinName, heroId, heroName)).ToList();
+
+            int defaultId = DefaultSkinId(heroId);
+            if (heroSkins.All(s => s.SkinId != defaultId))
+                heroSkins.Insert(0, new HeroSkin(defaultId, "Default", heroId, heroName));
+
+            heroes.Add(new Hero(heroId, heroName, heroSkins));
         }
 
         return new HeroSkinCatalog(heroes);

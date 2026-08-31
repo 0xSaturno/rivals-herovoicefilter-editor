@@ -5,9 +5,13 @@
         x:DataType="vm:SettingsViewModel"
         Title="Settings"
         Width="720" Height="420"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner"
+        Background="Transparent"
+        TransparencyLevelHint="AcrylicBlur,Mica,None">
 
-  <DockPanel Margin="18">
+  <Panel>
+    <Border Background="#990B0B0D" />
+    <DockPanel Margin="18">
 
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8"
                 HorizontalAlignment="Right" Margin="0,16,0,0">
@@ -44,13 +48,21 @@
 
       <StackPanel Spacing="6">
         <TextBlock Text="Workspace" FontWeight="SemiBold" FontSize="12" />
-        <TextBox Text="{Binding WorkspaceDirectory}" Watermark="(default: LocalAppData\HeroVoiceFilterEditor\workspace)" />
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBox Text="{Binding WorkspaceDirectory}" Watermark="(default: LocalAppData\HeroVoiceFilterEditor\workspace)" />
+          <Button Grid.Column="1" Content="Open workspace folder" Margin="8,0,0,0"
+                  Command="{Binding OpenWorkspaceCommand}" />
+        </Grid>
       </StackPanel>
 
       <CheckBox Content="Check for usmap and hero-name updates on launch"
                 IsChecked="{Binding CheckForUpdatesOnLaunch}" />
 
+      <CheckBox Content="Show log pane"
+                IsChecked="{Binding ShowLogPane}" />
+
     </StackPanel>
-  </DockPanel>
+    </DockPanel>
+  </Panel>
 
 </Window>

@@ -5,9 +5,13 @@
         x:DataType="vm:AddEntryViewModel"
         Title="Add entry"
         Width="560" Height="620"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner"
+        Background="Transparent"
+        TransparencyLevelHint="AcrylicBlur,Mica,None">
 
-  <DockPanel Margin="16">
+  <Panel>
+    <Border Background="#990B0B0D" />
+    <DockPanel Margin="16">
 
     <StackPanel DockPanel.Dock="Top" Spacing="10">
       <TextBlock Text="Pick a skin, or type any 7-digit id if it is too new to be listed."
@@ -41,6 +45,7 @@
       </ListBox.ItemTemplate>
     </ListBox>
 
-  </DockPanel>
+    </DockPanel>
+  </Panel>
 
 </Window>

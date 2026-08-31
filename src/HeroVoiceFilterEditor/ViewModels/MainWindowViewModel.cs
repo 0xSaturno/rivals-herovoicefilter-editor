@@ -84,6 +84,8 @@ public partial class MainWindowViewModel : ObservableObject
 
     public string UsmapLabel => Session.UsmapName is null ? "no usmap" : $"usmap {Session.UsmapName}";
 
+    public bool ShowLogPane => Session.Settings.ShowLogPane;
+
     partial void OnSearchTextChanged(string value) => ApplyFilter();
 
     partial void OnFilterChanged(EntryFilter value) => ApplyFilter();
@@ -265,12 +267,25 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private async Task OpenSettingsAsync()
     {
+        AppSettings before = Session.Settings;
+        var snapshot = (before.PaksDirectory, before.AesKey, before.WorkspaceDirectory, before.UsmapOverridePath);
+
         bool changed = await Dialogs.EditSettingsAsync(Session.Settings);
         if (!changed)
             return;
 
         SettingsService.Save(Session.Settings);
         Report("Settings saved");
+        OnPropertyChanged(nameof(ShowLogPane));
+
+        AppSettings after = Session.Settings;
+        bool needsReload = snapshot != (after.PaksDirectory, after.AesKey, after.WorkspaceDirectory, after.UsmapOverridePath);
+
+        // Purely cosmetic settings (log pane, update-check-on-launch) never need to re-touch
+        // the game, network or workspace — only game/workspace/usmap fields do.
+        if (!needsReload)
+            return;
+
         await RunBusy("Reloading", async () =>
         {
             await Session.LoadMetadataAsync(new Progress<string>(Report));
@@ -302,6 +317,7 @@ public partial class MainWindowViewModel : ObservableObject
             ? "no table loaded"
             : $"build {Session.Snapshot.Build}  ·  from {Session.Snapshot.SourceContainer}";
         OnPropertyChanged(nameof(UsmapLabel));
+        OnPropertyChanged(nameof(ShowLogPane));
 
         Status = Session.Readiness switch
         {

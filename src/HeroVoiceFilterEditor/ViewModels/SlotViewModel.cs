@@ -35,8 +35,25 @@ public partial class SlotViewModel : ObservableObject
         if (_suppress)
             return;
 
-        EffectReference? effect = value is null or NoneLabel ? null : _owner.ResolveEffect(value);
-        _owner.Entry.Slots[_index] = effect;
+        // A blank value is never a deliberate clear — that goes through the explicit "(None)"
+        // entry — so treat it (and any other text that resolves to nothing) as noise from the
+        // control rather than an edit. Only "(None)" or a real effect ever touches the model.
+        if (string.IsNullOrEmpty(value))
+            return;
+
+        if (value == NoneLabel)
+        {
+            _owner.Entry.Slots[_index] = null;
+        }
+        else
+        {
+            EffectReference? effect = _owner.ResolveEffect(value);
+            if (effect is null)
+                return;
+
+            _owner.Entry.Slots[_index] = effect;
+        }
+
         _owner.NotifySlotsChanged();
         OnPropertyChanged(nameof(IsEmpty));
     }

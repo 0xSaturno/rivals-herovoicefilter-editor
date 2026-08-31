@@ -101,6 +101,11 @@ public sealed class FilterProject
     {
         SavedUtc = DateTimeOffset.UtcNow;
 
+        // Enforce the Remove-has-no-Slots invariant here too, not just on Load, so it holds
+        // regardless of how the entries were built rather than trusting every call site.
+        foreach (ProjectEntry entry in Entries)
+            entry.Normalize();
+
         string? directory = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(directory))
             Directory.CreateDirectory(directory);

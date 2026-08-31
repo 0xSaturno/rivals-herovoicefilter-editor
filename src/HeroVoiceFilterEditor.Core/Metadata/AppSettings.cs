@@ -16,6 +16,8 @@ public sealed class AppSettings
 
     public bool CheckForUpdatesOnLaunch { get; set; } = true;
 
+    public bool ShowLogPane { get; set; } = true;
+
     public string EffectiveWorkspace =>
         string.IsNullOrWhiteSpace(WorkspaceDirectory) ? AppPaths.DefaultWorkspaceDirectory : WorkspaceDirectory;
 
