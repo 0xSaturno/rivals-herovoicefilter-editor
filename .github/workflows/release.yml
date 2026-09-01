@@ -51,9 +51,9 @@ jobs:
 
       - name: Zip
         shell: pwsh
-        run: Compress-Archive -Path publish/stage/* -DestinationPath "HeroVoiceFilterEditor-${{ env.TAG }}-win-x64.zip"
+        run: Compress-Archive -Path publish/stage/* -DestinationPath "RivalsHeroVoiceFilterEditor-${{ env.TAG }}-win-x64.zip"
 
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ env.TAG }}" "HeroVoiceFilterEditor-${{ env.TAG }}-win-x64.zip" --title "${{ env.TAG }}" --generate-notes
+        run: gh release create "${{ env.TAG }}" "RivalsHeroVoiceFilterEditor-${{ env.TAG }}-win-x64.zip" --title "${{ env.TAG }}" --generate-notes

@@ -4,7 +4,8 @@
         xmlns:mi="using:Material.Icons.Avalonia"
         x:Class="HeroVoiceFilterEditor.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="Hero Voice Filter Editor"
+        Title="Rivals HVF Editor"
+        Icon="avares://RivalsHeroVoiceFilterEditor/Assets/app.ico"
         Width="1280" Height="820"
         MinWidth="1000" MinHeight="640"
         Background="Transparent"
@@ -138,6 +139,7 @@
     <Border DockPanel.Dock="Top" Padding="12,10" BorderThickness="0,0,0,1" BorderBrush="{StaticResource Hairline}">
       <Grid ColumnDefinitions="Auto,*,Auto">
         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Image Source="avares://RivalsHeroVoiceFilterEditor/Assets/hvf-icon.png" Width="24" Height="24" Margin="0,0,4,0" />
           <Button Classes="iconText" Command="{Binding RefreshFromGameCommand}" IsEnabled="{Binding !IsBusy}">
             <StackPanel>
               <mi:MaterialIcon Kind="Refresh" />
@@ -191,6 +193,7 @@
                    TextTrimming="CharacterEllipsis" />
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
           <TextBlock Text="{Binding UsmapLabel}" Classes="dim" />
+          <TextBlock Text="·" Classes="dim" />
           <TextBlock Text="{Binding BackendVersion}" Classes="dim" />
         </StackPanel>
       </Grid>

@@ -82,7 +82,7 @@ public partial class MainWindowViewModel : ObservableObject
 
     public string BackendVersion => Core.BackendInfo.Describe();
 
-    public string UsmapLabel => Session.UsmapName is null ? "no usmap" : $"usmap {Session.UsmapName}";
+    public string UsmapLabel => Session.UsmapName ?? "no usmap";
 
     public bool ShowLogPane => Session.Settings.ShowLogPane;
 
