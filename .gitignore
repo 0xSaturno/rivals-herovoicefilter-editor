@@ -9,3 +9,5 @@ workspace/
 cache/
 publish/
 artifacts/
+
+scripts/

@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. 1.2.3"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      # Tag pushes give us the version via GITHUB_REF; manual runs use the input instead.
+      - name: Resolve version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/*') {
+            $version = $env:GITHUB_REF -replace 'refs/tags/v?', ''
+          } else {
+            $version = '${{ inputs.version }}'
+          }
+          "VERSION=$version" >> $env:GITHUB_ENV
+          "TAG=v$version" >> $env:GITHUB_ENV
+
+      # Single-file, framework-dependent (needs the .NET 8 Desktop Runtime, see README) with
+      # native libs (Skia, HarfBuzz, blake3, ...) bundled in too, so the exe is the only binary.
+      # DebugType=none skips pdb generation entirely rather than publishing then deleting it.
+      - name: Publish
+        run: >
+          dotnet publish src/HeroVoiceFilterEditor/HeroVoiceFilterEditor.csproj
+          -c Release -r win-x64 --self-contained false
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:DebugType=none -p:Version=${{ env.VERSION }}
+          -o publish/stage
+
+      - name: Add readme, license, notice
+        shell: pwsh
+        run: Copy-Item README.md, LICENSE, NOTICE.md publish/stage/
+
+      - name: Zip
+        shell: pwsh
+        run: Compress-Archive -Path publish/stage/* -DestinationPath "HeroVoiceFilterEditor-${{ env.TAG }}-win-x64.zip"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ env.TAG }}" "HeroVoiceFilterEditor-${{ env.TAG }}-win-x64.zip" --title "${{ env.TAG }}" --generate-notes
