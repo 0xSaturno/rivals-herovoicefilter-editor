@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:HeroVoiceFilterEditor.ViewModels"
+        xmlns:mi="using:Material.Icons.Avalonia"
         x:Class="HeroVoiceFilterEditor.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="Hero Voice Filter Editor"
@@ -24,6 +25,14 @@
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Opacity" Value="0.75" />
       <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+    <Style Selector="Button.iconText StackPanel">
+      <Setter Property="Orientation" Value="Horizontal" />
+      <Setter Property="Spacing" Value="6" />
+    </Style>
+    <Style Selector="Button.iconText mi|MaterialIcon">
+      <Setter Property="Width" Value="14" />
+      <Setter Property="Height" Value="14" />
     </Style>
     <Style Selector="Border.card">
       <Setter Property="Background" Value="{StaticResource PanelBg}" />
@@ -129,13 +138,32 @@
     <Border DockPanel.Dock="Top" Padding="12,10" BorderThickness="0,0,0,1" BorderBrush="{StaticResource Hairline}">
       <Grid ColumnDefinitions="Auto,*,Auto">
         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <Button Content="Refresh from game" Command="{Binding RefreshFromGameCommand}" IsEnabled="{Binding !IsBusy}" />
+          <Button Classes="iconText" Command="{Binding RefreshFromGameCommand}" IsEnabled="{Binding !IsBusy}">
+            <StackPanel>
+              <mi:MaterialIcon Kind="Refresh" />
+              <TextBlock Text="Refresh from game" />
+            </StackPanel>
+          </Button>
           <Border Width="1" Background="{StaticResource Hairline}" Margin="4,2" />
-          <Button Content="Open project…" Command="{Binding OpenProjectCommand}" IsEnabled="{Binding IsReady}" />
-          <Button Content="Save project" Command="{Binding SaveProjectCommand}" IsEnabled="{Binding IsReady}" />
-          <Button Content="Save as…" Command="{Binding SaveProjectAsCommand}" IsEnabled="{Binding IsReady}" />
+          <Button Classes="iconText" Command="{Binding OpenProjectCommand}" IsEnabled="{Binding IsReady}">
+            <StackPanel>
+              <mi:MaterialIcon Kind="FolderOpen" />
+              <TextBlock Text="Open project" />
+            </StackPanel>
+          </Button>
+          <Button Classes="iconText" Command="{Binding SaveProjectCommand}" IsEnabled="{Binding IsReady}">
+            <StackPanel>
+              <mi:MaterialIcon Kind="ContentSave" />
+              <TextBlock Text="Save project" />
+            </StackPanel>
+          </Button>
           <Border Width="1" Background="{StaticResource Hairline}" Margin="4,2" />
-          <Button Content="Export .uasset…" Command="{Binding ExportAssetCommand}" IsEnabled="{Binding IsReady}" />
+          <Button Classes="iconText" Command="{Binding ExportAssetCommand}" IsEnabled="{Binding IsReady}">
+            <StackPanel>
+              <mi:MaterialIcon Kind="Export" />
+              <TextBlock Text="Export .uasset" />
+            </StackPanel>
+          </Button>
         </StackPanel>
 
         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0" ClipToBounds="True">
@@ -145,7 +173,12 @@
                      TextAlignment="Center" IsVisible="{Binding HasUnsavedChanges}" />
         </StackPanel>
 
-        <Button Grid.Column="2" Content="Settings" Command="{Binding OpenSettingsCommand}" />
+        <Button Grid.Column="2" Classes="iconText" Command="{Binding OpenSettingsCommand}">
+          <StackPanel>
+            <mi:MaterialIcon Kind="Cog" />
+            <TextBlock Text="Settings" />
+          </StackPanel>
+        </Button>
       </Grid>
     </Border>
 
@@ -190,9 +223,19 @@
           <TextBox Text="{Binding SearchText}" Watermark="Search hero, skin name, id or filter…" />
           <Grid ColumnDefinitions="*,Auto,Auto">
             <ComboBox ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter}" HorizontalAlignment="Stretch" />
-            <Button Grid.Column="1" Content="Add…" Margin="8,0,0,0"
-                    Command="{Binding AddEntryCommand}" IsEnabled="{Binding IsReady}" />
-            <Button Grid.Column="2" Content="Remove" Margin="6,0,0,0" Command="{Binding RemoveEntryCommand}" />
+            <Button Grid.Column="1" Classes="iconText" Margin="8,0,0,0"
+                    Command="{Binding AddEntryCommand}" IsEnabled="{Binding IsReady}">
+              <StackPanel>
+                <mi:MaterialIcon Kind="Plus" />
+                <TextBlock Text="Add" />
+              </StackPanel>
+            </Button>
+            <Button Grid.Column="2" Classes="iconText" Margin="6,0,0,0" Command="{Binding RemoveEntryCommand}">
+              <StackPanel>
+                <mi:MaterialIcon Kind="Minus" />
+                <TextBlock Text="Remove" />
+              </StackPanel>
+            </Button>
           </Grid>
           <TextBlock Text="{Binding EntryCountText}" Classes="dim" />
         </StackPanel>

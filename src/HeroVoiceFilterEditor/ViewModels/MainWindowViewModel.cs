@@ -158,7 +158,7 @@ public partial class MainWindowViewModel : ObservableObject
         if (Session.Document is null)
             return;
 
-        string? path = ProjectPath ?? await Dialogs.PickSaveFileAsync(
+        string? path = await Dialogs.PickSaveFileAsync(
             "Save project", "HeroVoiceFilters" + FilterProject.Extension, FilterProject.Extension.TrimStart('.'));
         if (path is null)
             return;
@@ -169,13 +169,6 @@ public partial class MainWindowViewModel : ObservableObject
         HasUnsavedChanges = false;
         Report($"Saved {project.Entries.Count} change(s) to {Path.GetFileName(path)}");
         Status = $"Project saved — {project.Entries.Count} change(s)";
-    }
-
-    [RelayCommand]
-    private async Task SaveProjectAsAsync()
-    {
-        ProjectPath = null;
-        await SaveProjectAsync();
     }
 
     [RelayCommand]

@@ -83,7 +83,7 @@ public sealed class HeroSkinCatalog
                 if (currentHeroId == 0)
                     continue;
 
-                string heroName = Cell(cells, 1);
+                string heroName = TitleCaseWords(Cell(cells, 1));
                 if (!names.TryGetValue(currentHeroId, out string? existing))
                 {
                     names[currentHeroId] = heroName;
@@ -101,7 +101,7 @@ public sealed class HeroSkinCatalog
 
             int skinId = ParseId(Cell(cells, 2));
             if (skinId != 0)
-                skins[currentHeroId].Add((skinId, Cell(cells, 3)));
+                skins[currentHeroId].Add((skinId, TitleCaseWords(Cell(cells, 3))));
         }
 
         var heroes = new List<Hero>(order.Count);
@@ -118,6 +118,41 @@ public sealed class HeroSkinCatalog
         }
 
         return new HeroSkinCatalog(heroes);
+    }
+
+    /// The markdown shouts some names in ALL CAPS while others are already properly cased;
+    /// only words that are entirely uppercase get re-cased, so names like "G-Bomb" are untouched.
+    private static string TitleCaseWords(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        string[] words = text.Split(' ');
+        for (int i = 0; i < words.Length; i++)
+            words[i] = TitleCaseIfShouting(words[i]);
+        return string.Join(' ', words);
+    }
+
+    private static string TitleCaseIfShouting(string word)
+    {
+        if (word.Length < 2 || word != word.ToUpperInvariant() || !word.Any(char.IsLetter))
+            return word;
+
+        char[] chars = word.ToLowerInvariant().ToCharArray();
+        bool startOfWord = true;
+        for (int i = 0; i < chars.Length; i++)
+        {
+            if (char.IsLetter(chars[i]))
+            {
+                chars[i] = startOfWord ? char.ToUpperInvariant(chars[i]) : chars[i];
+                startOfWord = false;
+            }
+            else
+            {
+                startOfWord = true;
+            }
+        }
+        return new string(chars);
     }
 
     private static string[] SplitRow(string line)
