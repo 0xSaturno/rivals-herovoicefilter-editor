@@ -205,17 +205,24 @@ public partial class MainWindowViewModel : ObservableObject
             return;
 
         int[] existing = _all.Select(e => e.SkinId).ToArray();
-        int? skinId = await Dialogs.PickSkinAsync(Session.Heroes, existing);
-        if (skinId is null)
+        IReadOnlyList<int> skinIds = await Dialogs.PickSkinAsync(Session.Heroes, existing);
+        if (skinIds.Count == 0)
             return;
 
-        SkinBusEntry entry = Session.Document.AddEntry(skinId.Value);
-        var vm = new EntryViewModel(this, entry);
-        _all.Add(vm);
+        EntryViewModel? lastAdded = null;
+        foreach (int skinId in skinIds)
+        {
+            SkinBusEntry entry = Session.Document.AddEntry(skinId);
+            lastAdded = new EntryViewModel(this, entry);
+            _all.Add(lastAdded);
+        }
+
         ApplyFilter();
-        SelectedEntry = vm;
+        SelectedEntry = lastAdded;
         MarkDirty();
-        Report($"Added entry {skinId} ({Session.Heroes.Describe(skinId.Value)})");
+        Report(skinIds.Count == 1
+            ? $"Added entry {skinIds[0]} ({Session.Heroes.Describe(skinIds[0])})"
+            : $"Added {skinIds.Count} entries: {string.Join(", ", skinIds)}");
     }
 
     [RelayCommand]

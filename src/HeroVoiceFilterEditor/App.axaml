@@ -7,6 +7,63 @@
   <Application.Styles>
     <FluentTheme />
     <mi:MaterialIconStyles />
+
+    <!-- Pills / chips, shared across windows -->
+    <Style Selector="Border.pill">
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Padding" Value="8,3" />
+      <Setter Property="Background" Value="#1AFFFFFF" />
+    </Style>
+    <Style Selector="Border.pill TextBlock">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.pillId">
+      <Setter Property="Background" Value="#1D6FA8DC" />
+    </Style>
+    <!-- Consolas' line metrics sit higher than the UI font's, so a plain center-align still
+         looks off inside a tight pill; pinning LineHeight to the font size removes that. -->
+    <Style Selector="Border.pillId TextBlock">
+      <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+      <Setter Property="LineHeight" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#9AD0F5" />
+    </Style>
+    <Style Selector="Border.pillFilter">
+      <Setter Property="Background" Value="#1D9B7FE0" />
+    </Style>
+    <Style Selector="Border.pillFilter TextBlock">
+      <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+      <Setter Property="LineHeight" Value="11" />
+      <Setter Property="Foreground" Value="#D2C4F7" />
+    </Style>
+    <Style Selector="Border.pillMuted">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="Border.pillMuted TextBlock">
+      <Setter Property="Opacity" Value="0.45" />
+      <Setter Property="FontStyle" Value="Italic" />
+    </Style>
+    <Style Selector="Border.pillBadge">
+      <Setter Property="Background" Value="#33FFD479" />
+    </Style>
+    <Style Selector="Border.pillBadge TextBlock">
+      <Setter Property="FontSize" Value="10" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="#FFD479" />
+    </Style>
+    <!-- A white-based tint brightens whatever's behind it — fine over solid black, but it
+         washes out badly layered over the acrylic blur. A black-based tint darkens instead. -->
+    <Style Selector="Border.chip">
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="Background" Value="#40000000" />
+    </Style>
+    <Style Selector="Border.chip TextBlock">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
   </Application.Styles>
 
 </Application>

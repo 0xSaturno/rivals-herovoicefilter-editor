@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:HeroVoiceFilterEditor.ViewModels"
+        xmlns:mi="using:Material.Icons.Avalonia"
         x:Class="HeroVoiceFilterEditor.Views.AddEntryDialog"
         x:DataType="vm:AddEntryViewModel"
         Title="Add entry"
@@ -9,12 +10,28 @@
         Background="Transparent"
         TransparencyLevelHint="AcrylicBlur,Mica,None">
 
+  <Window.Styles>
+    <Style Selector="mi|MaterialIcon.expanded">
+      <Setter Property="RenderTransform" Value="rotate(90deg)" />
+    </Style>
+    <Style Selector="Button.chevron">
+      <Setter Property="Width" Value="24" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBlock.header">
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+  </Window.Styles>
+
   <Panel>
     <Border Background="#990B0B0D" />
     <DockPanel Margin="16">
 
     <StackPanel DockPanel.Dock="Top" Spacing="10">
-      <TextBlock Text="Pick a skin, or type any 7-digit id if it is too new to be listed."
+      <TextBlock Text="Pick a skin, or type any 7-digit id if it is missing."
                  Opacity="0.65" FontSize="12" TextWrapping="Wrap" />
       <TextBox Text="{Binding Query}" Watermark="Search hero or skin name…" />
     </StackPanel>
@@ -27,19 +44,34 @@
       <TextBlock Text="{Binding Validation}" FontSize="12" Opacity="0.75" TextWrapping="Wrap" />
       <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
         <Button Content="Cancel" Click="OnCancel" />
-        <Button Content="Add entry" Click="OnAccept" IsEnabled="{Binding CanAccept}" IsDefault="True" />
+        <Button Content="{Binding AddLabel}" Click="OnAccept" IsEnabled="{Binding CanAccept}" IsDefault="True" />
       </StackPanel>
     </StackPanel>
 
-    <ListBox ItemsSource="{Binding Results}" SelectedItem="{Binding Selected}" Margin="0,10">
+    <ListBox ItemsSource="{Binding Results}" Margin="0,10">
       <ListBox.ItemTemplate>
-        <DataTemplate x:DataType="vm:SkinChoice">
-          <Grid ColumnDefinitions="90,*,Auto" Margin="0,2"
-                AutomationProperties.Name="{Binding Display}">
-            <TextBlock Text="{Binding SkinId}" FontFamily="Consolas,Menlo,monospace" FontSize="12" Opacity="0.55" />
-            <TextBlock Grid.Column="1" Text="{Binding Display}" TextTrimming="CharacterEllipsis" />
-            <TextBlock Grid.Column="2" Text="already added" FontSize="11" Foreground="#FFD479"
-                       IsVisible="{Binding AlreadyPresent}" />
+        <DataTemplate x:DataType="vm:ResultRow">
+          <Grid ColumnDefinitions="26,24,26,80,*,Auto" Margin="0,1"
+                AutomationProperties.Name="{Binding Skin.Display}">
+            <CheckBox Grid.Column="0" IsChecked="{Binding IsChecked}" IsEnabled="{Binding !Skin.AlreadyPresent}"
+                      Command="{Binding $parent[Window].((vm:AddEntryViewModel)DataContext).ToggleSelectCommand}"
+                      CommandParameter="{Binding Skin.SkinId}" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="chevron"
+                    Command="{Binding $parent[Window].((vm:AddEntryViewModel)DataContext).ToggleExpandCommand}"
+                    CommandParameter="{Binding HeroId}"
+                    IsVisible="{Binding HasAltSkins}">
+              <mi:MaterialIcon Kind="ChevronRight" Width="16" Height="16"
+                                Classes.expanded="{Binding IsExpanded}" />
+            </Button>
+            <TextBlock Grid.Column="2" Text="alt" FontSize="11" Opacity="0.45" VerticalAlignment="Center"
+                       IsVisible="{Binding IsAlt}" />
+            <Border Grid.Column="3" Classes="pill pillId" HorizontalAlignment="Left" VerticalAlignment="Center">
+              <TextBlock Text="{Binding Skin.SkinId}" />
+            </Border>
+            <TextBlock Grid.Column="4" Text="{Binding Skin.Display}" TextTrimming="CharacterEllipsis"
+                       Classes.header="{Binding IsHeader}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="5" Text="already added" FontSize="11" Foreground="#FFD479"
+                       VerticalAlignment="Center" IsVisible="{Binding Skin.AlreadyPresent}" />
           </Grid>
         </DataTemplate>
       </ListBox.ItemTemplate>

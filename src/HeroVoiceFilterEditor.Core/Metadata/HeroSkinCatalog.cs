@@ -108,6 +108,12 @@ public sealed class HeroSkinCatalog
         foreach (int heroId in order)
         {
             string heroName = names[heroId].Length > 0 ? names[heroId] : $"Hero {heroId}";
+
+            // "(Old)" rows are superseded owners of a reassigned id, not real heroes; ids past
+            // 1999 are test/placeholder rows in the markdown. Neither belongs in the picker.
+            if (heroId > 1999 || heroName.Contains("(Old)", StringComparison.OrdinalIgnoreCase))
+                continue;
+
             List<HeroSkin> heroSkins = skins[heroId].Select(s => new HeroSkin(s.SkinId, s.SkinName, heroId, heroName)).ToList();
 
             int defaultId = DefaultSkinId(heroId);

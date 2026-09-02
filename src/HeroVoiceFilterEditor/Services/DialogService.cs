@@ -54,10 +54,10 @@ public sealed class DialogService : IDialogService
     public async Task<bool> ConfirmAsync(string title, string message) =>
         await MessageDialog.Create(title, message, confirm: true).ShowDialog<bool>(_owner);
 
-    public async Task<int?> PickSkinAsync(HeroSkinCatalog heroes, IReadOnlyCollection<int> alreadyPresent)
+    public async Task<IReadOnlyList<int>> PickSkinAsync(HeroSkinCatalog heroes, IReadOnlyCollection<int> alreadyPresent)
     {
         var dialog = new AddEntryDialog { DataContext = new AddEntryViewModel(heroes, alreadyPresent) };
-        return await dialog.ShowDialog<int?>(_owner);
+        return await dialog.ShowDialog<IReadOnlyList<int>>(_owner) ?? Array.Empty<int>();
     }
 
     public async Task<bool> EditSettingsAsync(AppSettings settings)
